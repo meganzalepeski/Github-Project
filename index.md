@@ -1,14 +1,22 @@
-# Welcome to My Project
-
 # FAQ & Resources
 **Quick onboarding and common problem-solving for this project**
 
 Welcome! This page gets you from zero → productive, and answers the most common questions.
 
----
-
 ## 🚀 Quick Start
-1. **Clone the repo**
-   ```bash
-   git clone https://github.com/meganzalepeski/Github-Project.git
-   cd Github-Project
+- Clone the repo: `git clone https://github.com/<your-username>/<your-repo>.git`
+- Install prerequisites
+- Run setup commands
+- Verify everything works
+
+## ❓ FAQ
+**How do I report a bug?**  
+→ Open a new [Issue](https://github.com/meganzalepeski/Github-Project/issues)
+
+**Where do I ask questions?**  
+→ Use [Discussions](https://github.com/meganzalepeski/Github-Project/discussions)
+
+**How do I contribute?**  
+→ See [Contributing Guide](contributing.md)
+
+For a longer FAQ, see [Full FAQ](faq.md).
