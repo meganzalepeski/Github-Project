@@ -20,27 +20,26 @@ jobs:
         with:
           filters: |
             node:
+              - 'frontend/**'
               - 'package.json'
               - 'package-lock.json'
               - '**/*.js'
               - '**/*.ts'
-              - 'frontend/**'
             py:
+              - 'backend/**'
               - 'requirements.txt'
               - 'pyproject.toml'
               - '**/*.py'
-              - 'backend/**'
             java:
+              - 'services/java/**'
               - 'pom.xml'
               - '**/*.java'
-              - 'services/java/**'
             docs:
-              - '**/*.md'
               - 'docs/**'
+              - '**/*.md'
 
   node:
     needs: detect
-    # Run if pushing to main OR node-relevant files changed in PR
     if: github.event_name == 'push' || needs.detect.outputs.node_changed == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -48,8 +47,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm ci
-      - run: npm test
+      - name: Install deps
+        working-directory: frontend
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+      - name: Test
+        working-directory: frontend
+        run: npm test
 
   python:
     needs: detect
@@ -61,10 +65,12 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install deps
+        working-directory: backend
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; else pip install pytest; fi
       - name: Run tests
+        working-directory: backend
         run: pytest -q
 
   java:
@@ -78,8 +84,12 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - run: mvn -q -B -DskipTests install
-      - run: mvn -q -B test
+      - name: Build (skip tests)
+        working-directory: services/java
+        run: mvn -q -B -DskipTests install
+      - name: Test
+        working-directory: services/java
+        run: mvn -q -B test
 
   docs:
     needs: detect
