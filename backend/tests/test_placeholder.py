@@ -1,3 +1,3 @@
-def test_placeholder():
+def test_smoke():
+    # This test always passes
     assert True
- 
