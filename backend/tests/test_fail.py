@@ -1,2 +1,2 @@
 def test_fail():
-    assert 1 == 2  # This will FAIL
+    assert 1 == 1  # This will FAIL
