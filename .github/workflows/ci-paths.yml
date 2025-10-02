@@ -1,0 +1,91 @@
+name: CI (paths-aware)
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      node_changed: ${{ steps.filter.outputs.node }}
+      py_changed:   ${{ steps.filter.outputs.py }}
+      java_changed: ${{ steps.filter.outputs.java }}
+      docs_changed: ${{ steps.filter.outputs.docs }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            node:
+              - 'package.json'
+              - 'package-lock.json'
+              - '**/*.js'
+              - '**/*.ts'
+              - 'frontend/**'
+            py:
+              - 'requirements.txt'
+              - 'pyproject.toml'
+              - '**/*.py'
+              - 'backend/**'
+            java:
+              - 'pom.xml'
+              - '**/*.java'
+              - 'services/java/**'
+            docs:
+              - '**/*.md'
+              - 'docs/**'
+
+  node:
+    needs: detect
+    # Run if pushing to main OR node-relevant files changed in PR
+    if: github.event_name == 'push' || needs.detect.outputs.node_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm test
+
+  python:
+    needs: detect
+    if: github.event_name == 'push' || needs.detect.outputs.py_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Run tests
+        run: pytest -q
+
+  java:
+    needs: detect
+    if: github.event_name == 'push' || needs.detect.outputs.java_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - run: mvn -q -B -DskipTests install
+      - run: mvn -q -B test
+
+  docs:
+    needs: detect
+    if: github.event_name == 'push' || needs.detect.outputs.docs_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint Markdown
+        uses: avto-dev/markdown-lint@v1
