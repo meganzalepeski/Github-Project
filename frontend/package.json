@@ -1,0 +1,8 @@
+{
+  "name": "frontend",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "test": "echo \"OK: no real tests yet\" && exit 0"
+  }
+}
