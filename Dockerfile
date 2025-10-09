@@ -1,20 +1,25 @@
-# Github-Project/Dockerfile
-# If quay.io is blocked, try: docker.io/fenicsproject/stable:current
-FROM docker.io/fenicsproject/stable:current
+FROM continuumio/miniconda3:latest
 SHELL ["/bin/bash","-lc"]
 
-# Put repo code at /app
+# Create Python 3.10 env and install fenics + mshr from conda-forge
+RUN conda update -n base -c defaults -y conda && \
+    conda create -y -n pypodgp python=3.10 && \
+    conda install -y -n pypodgp -c conda-forge fenics mshr numpy scipy matplotlib && \
+    conda clean -afy
+ENV PATH="/opt/conda/envs/pypodgp/bin:${PATH}"
+
 WORKDIR /app
-# Copy your submodule contents into the image
+# Copy the PyPOD-GP submodule contents into the image
 COPY external/PyPOD-GP /app
 
-# Python deps for the repo
-RUN python3 -m pip install --upgrade pip && \
-    if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi && \
-    python3 - <<'PY' || pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+# Install repo Python deps
+RUN if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
+
+# Ensure torch exists (CPU wheels) if not provided in requirements.txt
+RUN python - <<'PY' || pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 import importlib, sys
 sys.exit(0) if importlib.util.find_spec('torch') else sys.exit(1)
 PY
 
-# Default: print help so container "works" even without data
-CMD ["python3", "run_pod.py", "-h"]
+# Default: print help
+CMD ["python","run_pod.py","-h"]
