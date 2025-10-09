@@ -1,31 +1,27 @@
+# Github-Project/Dockerfile
 FROM continuumio/miniconda3:latest
 SHELL ["/bin/bash","-lc"]
 
-# Create Python 3.11 env and install fenics + mshr from conda-forge
+# Python 3.10 + a stable Fenics stack (dolfin+mshr 2019.1)
 RUN conda update -n base -c defaults -y conda && \
-    conda create -y -n pypodgp python=3.11 && \
-    conda install -y -n pypodgp -c conda-forge fenics mshr numpy scipy matplotlib && \
+    conda create -y -n pypodgp python=3.10 && \
+    conda install -y -n pypodgp -c conda-forge \
+      "fenics==2019.1.0" "mshr==2019.1.0" \
+      "petsc<3.18" "mpi4py<4" \
+      numpy scipy matplotlib && \
     conda clean -afy
 
-# Make the env active by default
-ENV CONDA_DEFAULT_ENV=pypodgp
-ENV PATH="/opt/conda/envs/pypodgp/bin:${PATH}"
+# Run all subsequent commands inside that env
+SHELL ["conda","run","-n","pypodgp","/bin/bash","-c"]
 
 WORKDIR /app
-# Copy the PyPOD-GP submodule contents into the image
+# Copy the PyPOD-GP submodule into the image
 COPY external/PyPOD-GP /app
 
-# Install repo Python deps + PyTorch (CPU) and verify
+# Use requirements.txt for everything, but ignore the 'python==' line
 RUN python -m pip install --upgrade pip && \
-    if [ -f requirements.txt ]; then python -m pip install --no-cache-dir -r requirements.txt || true; fi && \
-    python -m pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu && \
-    python - <<'PY'
-import torch
-print("Torch installed OK:", torch.__version__)
-PY
+    awk '!/^python==/' requirements.txt > /tmp/reqs.txt && \
+    python -m pip install --no-cache-dir -r /tmp/reqs.txt
 
-
-# Default: print help so the container "works" even without data
-CMD ["python","run_pod.py","-h"]
-
-does this look correct before i rebuild
+# Default: show help
+CMD ["conda","run","--no-capture-output","-n","pypodgp","python","run_pod.py","-h"]
