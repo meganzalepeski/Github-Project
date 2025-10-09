@@ -15,9 +15,16 @@ WORKDIR /app
 # Copy the PyPOD-GP submodule contents into the image
 COPY external/PyPOD-GP /app
 
-# Install repo Python deps and PyTorch CPU wheels
-RUN if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt || true; fi && \
-    pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+# Install PyTorch first (CPU-only build)
+RUN python -m pip install --upgrade pip && \
+    python -m pip install --no-cache-dir torch torchvision torchaudio \
+      --index-url https://download.pytorch.org/whl/cpu && \
+    # Then install everything else (this will reuse torch instead of downgrading it)
+    if [ -f requirements.txt ]; then python -m pip install --no-cache-dir -r requirements.txt || true; fi && \
+    python - <<'PY'
+import torch
+print("Torch successfully installed:", torch.__version__)
+PY
 
 
 # Default: print help so the container "works" even without data
