@@ -1,0 +1,3 @@
+[submodule "external/PyPOD-GP"]
+	path = external/PyPOD-GP
+	url = https://github.com/CompResearchLab/PyPOD-GP.git
