@@ -7,13 +7,15 @@ RUN conda update -n base -c defaults -y conda && \
     conda install -y -n pypodgp -c conda-forge fenics mshr numpy scipy matplotlib && \
     conda clean -afy
 
-# Make the env active by default for subsequent RUN commands
-SHELL ["conda", "run", "-n", "pypodgp", "/bin/bash", "-c"]
+# Make the env active by default
+ENV CONDA_DEFAULT_ENV=pypodgp
+ENV PATH="/opt/conda/envs/pypodgp/bin:${PATH}"
 
 WORKDIR /app
+# Copy the PyPOD-GP submodule contents into the image
 COPY external/PyPOD-GP /app
 
-# Install Python deps + PyTorch (CPU) **inside pypodgp env**
+# Install repo Python deps + PyTorch (CPU) and verify
 RUN python -m pip install --upgrade pip && \
     if [ -f requirements.txt ]; then python -m pip install --no-cache-dir -r requirements.txt || true; fi && \
     python -m pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu && \
@@ -22,5 +24,8 @@ import torch
 print("Torch installed OK:", torch.__version__)
 PY
 
-# Default command: run help
-CMD ["conda", "run", "--no-capture-output", "-n", "pypodgp", "python", "run_pod.py", "-h"]
+
+# Default: print help so the container "works" even without data
+CMD ["python","run_pod.py","-h"]
+
+does this look correct before i rebuild
