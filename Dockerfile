@@ -3,7 +3,7 @@ SHELL ["/bin/bash","-lc"]
 
 # Create Python 3.10 env and install fenics + mshr from conda-forge
 RUN conda update -n base -c defaults -y conda && \
-    conda create -y -n pypodgp python=3.10 && \
+    conda create -y -n pypodgp python=3.11 && \
     conda install -y -n pypodgp -c conda-forge fenics mshr numpy scipy matplotlib && \
     conda clean -afy
 ENV PATH="/opt/conda/envs/pypodgp/bin:${PATH}"
