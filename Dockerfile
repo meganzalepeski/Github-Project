@@ -1,6 +1,6 @@
 # Github-Project/Dockerfile
 # If quay.io is blocked, try: docker.io/fenicsproject/stable:current
-FROM quay.io/fenicsproject/stable:current
+FROM docker.io/fenicsproject/stable:current
 SHELL ["/bin/bash","-lc"]
 
 # Put repo code at /app
