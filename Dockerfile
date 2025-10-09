@@ -15,12 +15,10 @@ WORKDIR /app
 # Copy the PyPOD-GP submodule contents into the image
 COPY external/PyPOD-GP /app
 
-# Install repo Python deps (allow fail if torch pin is incompatible), then add PyTorch CPU wheels
+# Install repo Python deps and PyTorch CPU wheels
 RUN if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt || true; fi && \
-    python - <<'PY' || pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-import importlib, sys
-sys.exit(0) if importlib.util.find_spec('torch') else sys.exit(1)
-PY
+    pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
 
 # Default: print help so the container "works" even without data
 CMD ["python","run_pod.py","-h"]
