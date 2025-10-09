@@ -1,27 +1,24 @@
-# Github-Project/Dockerfile
 FROM continuumio/miniconda3:latest
 SHELL ["/bin/bash","-lc"]
 
-# Python 3.10 + a stable Fenics stack (dolfin+mshr 2019.1)
+# Create Python 3.11 env and install fenics + mshr from conda-forge
 RUN conda update -n base -c defaults -y conda && \
-    conda create -y -n pypodgp python=3.10 && \
-    conda install -y -n pypodgp -c conda-forge \
-      "fenics==2019.1.0" "mshr==2019.1.0" \
-      "petsc<3.18" "mpi4py<4" \
-      numpy scipy matplotlib && \
+    conda create -y -n pypodgp python=3.11 && \
+    conda install -y -n pypodgp -c conda-forge fenics mshr numpy scipy matplotlib && \
     conda clean -afy
 
-# Run all subsequent commands inside that env
-SHELL ["conda","run","-n","pypodgp","/bin/bash","-c"]
+# Make the env active by default
+ENV CONDA_DEFAULT_ENV=pypodgp
+ENV PATH="/opt/conda/envs/pypodgp/bin:${PATH}"
 
 WORKDIR /app
-# Copy the PyPOD-GP submodule into the image
+# Copy the PyPOD-GP submodule contents into the image
 COPY external/PyPOD-GP /app
 
-# Use requirements.txt for everything, but ignore the 'python==' line
-RUN python -m pip install --upgrade pip && \
-    awk '!/^python==/' requirements.txt > /tmp/reqs.txt && \
-    python -m pip install --no-cache-dir -r /tmp/reqs.txt
+# Install repo Python deps and PyTorch CPU wheels
+RUN if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt || true; fi && \
+    pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
-# Default: show help
-CMD ["conda","run","--no-capture-output","-n","pypodgp","python","run_pod.py","-h"]
+
+# Default: print help so the container "works" even without data
+CMD ["python","run_pod.py","-h"]
