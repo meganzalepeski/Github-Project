@@ -5,10 +5,9 @@ SHELL ["/bin/bash","-lc"]
 RUN conda update -n base -c defaults -y conda && \
     conda create -y -n pypodgp python=3.10 && \
     conda install -y -n pypodgp -c conda-forge \
-        "fenics==2019.1.0" "mshr==2019.1.0" \
-        "petsc<3.18" "mpi4py<4" \
-        numpy scipy h5py pandas sympy==1.10.1 && \
+      fenics mshr numpy scipy matplotlib sympy==1.10.1 && \
     conda clean -afy
+
 
 # Run all subsequent commands inside that environment
 SHELL ["conda", "run", "-n", "pypodgp", "/bin/bash", "-c"]
