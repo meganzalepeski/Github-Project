@@ -32,4 +32,6 @@ PY
 
 
 # Default run behavior (print help text)
-CMD ["conda", "run", "--no-capture-output", "-n", "pypodgp", "python", "run_pod.py", "-h"]
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "pypodgp"]
+CMD ["python", "run_pod.py", "-h"]
+
