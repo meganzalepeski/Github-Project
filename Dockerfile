@@ -25,10 +25,11 @@ RUN python -m pip install --upgrade pip && \
 
 # Verify installs worked
 RUN python - <<'PY'
-import torch, dolfin, fenics
+import torch, dolfin
 print("Torch:", torch.__version__)
-print("FEniCS:", fenics.__version__)
+print("Dolfin:", dolfin.__version__)
 PY
+
 
 # Default run behavior (print help text)
 CMD ["conda", "run", "--no-capture-output", "-n", "pypodgp", "python", "run_pod.py", "-h"]
