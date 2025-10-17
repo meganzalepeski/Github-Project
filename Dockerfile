@@ -8,7 +8,7 @@ RUN conda update -n base -c defaults -y conda && \
       "fenics==2019.1.0" "mshr==2019.1.0" \
       "petsc<3.18" "slepc<3.18" \
       "mpi4py<4" \
-      numpy scipy h5py pandas matplotlib sympy==1.10.1 && \
+      numpy scipy h5py pandas matplotlib && \
     conda clean -afy
 
 # Run subsequent commands inside that env
