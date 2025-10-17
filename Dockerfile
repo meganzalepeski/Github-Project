@@ -7,7 +7,7 @@ RUN conda update -n base -c defaults -y conda && \
     conda install -y -n pypodgp -c conda-forge \
         "fenics==2019.1.0" "mshr==2019.1.0" \
         "petsc<3.18" "mpi4py<4" \
-        numpy scipy h5py pandas && \
+        numpy scipy h5py pandas sympy==1.10.1 && \
     conda clean -afy
 
 # Run all subsequent commands inside that environment
