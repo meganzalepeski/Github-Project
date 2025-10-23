@@ -24,7 +24,7 @@ ENV PIP_CONSTRAINT=/tmp/constraints.txt
 
 # ---- Torch CPU wheels ----
 RUN python -m pip install --upgrade pip && \
-    pip install --no-cache-dir --no-deps \
+    pip install --no-cache-dir \
       torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
 # Default behavior: show help (env auto-activated via entrypoint)
