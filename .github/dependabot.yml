@@ -1,0 +1,21 @@
+version: 2
+updates:
+  # Node.js / frontend
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule: { interval: "weekly" }
+
+  # Python / backend
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule: { interval: "weekly" }
+
+  # Java / maven service
+  - package-ecosystem: "maven"
+    directory: "/services/java"
+    schedule: { interval: "weekly" }
+
+  # GitHub Actions versions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule: { interval: "weekly" }
