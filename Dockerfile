@@ -2,14 +2,16 @@ FROM continuumio/miniconda3:latest
 SHELL ["/bin/bash","-lc"]
 
 # --- Create env and install core stack with strict conda-forge (includes sympy 1.10.1) ---
+# Core env: Python 3.10 + FEniCS classic, pinned compatibly
 RUN conda update -n base -c defaults -y conda && \
     conda create -y -n pypodgp python=3.10 && \
-    conda run -n pypodgp conda config --env --add channels conda-forge && \
-    conda run -n pypodgp conda config --env --set channel_priority strict && \
-    conda install -y -n pypodgp -c conda-forge \
-      "fenics==2019.1.0" "mshr==2019.1.0" "petsc<3.18" "mpi4py<4" \
+    conda run -n pypodgp conda install -y \
+      -c conda-forge --strict-channel-priority \
+      "fenics==2019.1.0" "mshr==2019.1.0" \
+      "petsc<3.18" "slepc<3.18" "mpi4py<4" \
       numpy scipy h5py pandas matplotlib "sympy==1.10.1" && \
     conda clean -afy
+
 
 # Run subsequent commands inside that env
 SHELL ["conda","run","-n","pypodgp","/bin/bash","-c"]
