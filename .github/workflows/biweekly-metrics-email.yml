@@ -54,18 +54,17 @@ jobs:
       - name: Send email
         uses: dawidd6/action-send-mail@v3
         with:
-          server: ${{ secrets.SMTP_SERVER }}
-          port: ${{ secrets.SMTP_PORT }}
-          username: ${{ secrets.SMTP_USERNAME }}
-          password: ${{ secrets.SMTP_PASSWORD }}
+          server_address: ${{ secrets.SMTP_SERVER }}   # e.g. smtp.gmail.com
+          server_port: ${{ secrets.SMTP_PORT }}        # 465
+          secure: true                                 # SSL (true for 465)
+          username: ${{ secrets.SMTP_USERNAME }}       # your@gmail.com
+          password: ${{ secrets.SMTP_PASSWORD }}       # app password
+          from: ${{ secrets.FROM_EMAIL }}              # your@gmail.com
+          to: ${{ secrets.TO_EMAILS }}                 # me@..., other@...
           subject: "Biweekly Metrics – ${{ github.repository }}"
-          from: ${{ secrets.FROM_EMAIL }}
-          to: ${{ secrets.TO_EMAILS }}
-          content_type: text/plain
-          body: |
-            Hi! Your biweekly metrics report is attached.
-
-            Repo: ${{ github.repository }}
-            Workflow: ${{ github.workflow }}
-            Run: ${{ github.run_number }}
+          html_body: |
+            <p>Hi! Your biweekly metrics report is attached.</p>
+            <p>Repo: <b>${{ github.repository }}</b><br/>
+            Workflow: ${{ github.workflow }}<br/>
+            Run: ${{ github.run_number }}</p>
           attachments: metrics_report.html
