@@ -47,7 +47,7 @@ jobs:
       - name: Build metrics report (HTML)
         env:
           REPO: ${{ github.repository }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          METRICS_TOKEN: ${{ secrets.METRICS_TOKEN }}
         run: |
           python scripts/biweekly_metrics.py
 
