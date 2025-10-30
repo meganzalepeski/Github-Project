@@ -2,8 +2,7 @@ name: Biweekly Metrics Email
 
 on:
   schedule:
-    # Run every Thursday at 9:00 AM ET (13:00 UTC), we’ll self-gate to “every other”
-    - cron: "0 13 * * 4"
+    - cron: "0 13 * * 4"  # every Thursday 9AM ET
   workflow_dispatch:
 
 jobs:
