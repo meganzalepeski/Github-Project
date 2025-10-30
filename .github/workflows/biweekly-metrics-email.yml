@@ -2,14 +2,15 @@ name: Biweekly Metrics Email
 
 on:
   schedule:
-    - cron: "0 13 * * 4"  # every Thursday 9AM ET
-  workflow_dispatch:
+    - cron: "0 13 * * 4"   # Every Thursday 9:00 AM ET (13:00 UTC)
+  workflow_dispatch:        # Manual "Run workflow" button
 
 jobs:
   report:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+
     steps:
       - uses: actions/checkout@v4
 
@@ -18,193 +19,131 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install deps
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests python-dateutil
 
       - name: Skip unless this is an "every other Thursday" starting 2025-10-30
         id: gate
+        shell: bash
         run: |
-          python <<'PY'
-import sys, datetime
-# Anchor: first run date (Thursday)
-anchor = datetime.date(2025, 10, 30)
-today = datetime.datetime.utcnow().date()
-# Only Thursdays pass the weekday check (Mon=0 ... Thu=3)
-if today.weekday() != 3:
-    print("Not Thursday -> skip")
-    sys.exit(78)  # neutral
-# Number of weeks since anchor; run only on even offsets (0,2,4,...)
-weeks = (today - anchor).days // 7
-if weeks < 0 or weeks % 2 != 0:
-    print(f"Not our biweekly Thursday (weeks since anchor={weeks}) -> skip")
-    sys.exit(78)  # neutral
-print("Gate passed: run metrics")
-PY
+          # 1) Ensure it's Thursday (ISO: Mon=1 ... Thu=4)
+          dow=$(date -u +%u)
+          if [ "$dow" -ne 4 ]; then
+            echo "Not Thursday -> skip"
+            exit 78
+          fi
+          # 2) Weeks since anchor (2025-10-30)
+          anchor_ts=$(date -u -d '2025-10-30 00:00:00Z' +%s)
+          now_ts=$(date -u +%s)
+          weeks=$(( (now_ts - anchor_ts) / 604800 ))
+          if [ $weeks -lt 0 ] || [ $((weeks % 2)) -ne 0 ]; then
+            echo "Not our biweekly Thursday (weeks since anchor=$weeks) -> skip"
+            exit 78
+          fi
+          echo "Gate passed: run metrics"
 
       - name: Build metrics report (HTML)
+        shell: bash
         env:
-          REPO: ${{ github.repository }}          # e.g., org/repo
+          REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p scripts
-          cat > scripts/biweekly_metrics.py << 'PY'
-import os, requests, datetime, math, collections
+          cat > scripts/biweekly_metrics.py <<'PY'
+import os, requests, datetime, collections
 from dateutil import tz
 
 REPO = os.environ["REPO"]
 TOKEN = os.environ["GITHUB_TOKEN"]
 owner, repo = REPO.split("/")
-
-SINCE = (datetime.datetime.utcnow() - datetime.timedelta(days=14)).replace(microsecond=0).isoformat() + "Z"
-UNTIL = datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+SINCE = (datetime.datetime.utcnow() - datetime.timedelta(days=14)).isoformat() + "Z"
 
 S = requests.Session()
 S.headers.update({
     "Authorization": f"Bearer {TOKEN}",
     "Accept": "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28"
 })
 
-def paged(url, params=None, extra_headers=None):
-    p = params.copy() if params else {}
-    p.setdefault("per_page", 100)
-    page = 1
-    while True:
-        p["page"] = page
-        h = S.headers if not extra_headers else {**S.headers, **extra_headers}
-        r = S.get(url, params=p, headers=h)
-        r.raise_for_status()
-        data = r.json()
-        if not isinstance(data, list):
-            return data
-        if not data:
-            break
-        for item in data:
-            yield item
-        if len(data) < p["per_page"]:
-            break
-        page += 1
+def get(url, params=None):
+    r = S.get(url, params=params or {})
+    r.raise_for_status()
+    return r.json()
 
-# Repo basics
-repo_info = paged(f"https://api.github.com/repos/{owner}/{repo}")
-stars_total = repo_info.get("stargazers_count", 0)
-forks_total = repo_info.get("forks_count", 0)
+def search_count(q):
+    r = get("https://api.github.com/search/issues", {"q": q})
+    return r.get("total_count", 0)
 
-# Stars in last 14d
-stars_recent = 0
-for sg in paged(
-    f"https://api.github.com/repos/{owner}/{repo}/stargazers",
-    extra_headers={"Accept":"application/vnd.github.v3.star+json"}
-):
-    sa = sg.get("starred_at")
-    if not sa: continue
-    if sa >= SINCE: stars_recent += 1
+# Totals
+repo_info = get(f"https://api.github.com/repos/{owner}/{repo}")
+stars = repo_info.get("stargazers_count", 0)
+forks = repo_info.get("forks_count", 0)
+
+# 14d deltas
+issues_open = search_count(f"repo:{owner}/{repo} is:issue created:>={SINCE}")
+issues_closed = search_count(f"repo:{owner}/{repo} is:issue closed:>={SINCE}")
+
+prs_open = search_count(f"repo:{owner}/{repo} is:pr created:>={SINCE}")
+prs_merged = search_count(f"repo:{owner}/{repo} is:pr is:merged merged:>={SINCE}")
+prs_closed = search_count(f"repo:{owner}/{repo} is:pr is:closed -is:merged closed:>={SINCE}")
+
+# Active contributors in last 14d (unique commit authors)
+authors = set()
+commits = get(f"https://api.github.com/repos/{owner}/{repo}/commits", {"since": SINCE})
+for c in commits:
+    a = c.get("author")
+    if a and a.get("login"):
+        authors.add(a["login"])
+active_contributors = len(authors)
 
 # Traffic (last 14d)
-views = paged(f"https://api.github.com/repos/{owner}/{repo}/traffic/views")
-clones = paged(f"https://api.github.com/repos/{owner}/{repo}/traffic/clones")
-views_sum = sum(p["count"] for p in views.get("views", []))
-views_uniques = views.get("uniques", 0)
-clones_sum = sum(p["count"] for p in clones.get("clones", []))
-clones_uniques = clones.get("uniques", 0)
+views = get(f"https://api.github.com/repos/{owner}/{repo}/traffic/views")
+clones = get(f"https://api.github.com/repos/{owner}/{repo}/traffic/clones")
+views_total = sum(v["count"] for v in views.get("views", []))
+views_unique = views.get("uniques", 0)
+clones_total = sum(v["count"] for v in clones.get("clones", []))
+clones_unique = clones.get("uniques", 0)
 
-# Releases / downloads
-releases = list(paged(f"https://api.github.com/repos/{owner}/{repo}/releases", params={"per_page":100}))
-total_downloads = 0
-latest_release_downloads = 0
-latest_release_tag = "—"
-if releases:
+# Downloads
+releases = get(f"https://api.github.com/repos/{owner}/{repo}/releases")
+downloads_total = 0
+latest_dl = 0
+latest_tag = "-"
+if isinstance(releases, list) and releases:
     for r in releases:
         for a in r.get("assets", []):
-            total_downloads += a.get("download_count", 0)
+            downloads_total += a.get("download_count", 0)
     latest = releases[0]
-    latest_release_tag = latest.get("tag_name") or latest.get("name") or "—"
-    latest_release_downloads = sum(a.get("download_count",0) for a in latest.get("assets", []))
+    latest_tag = latest.get("tag_name") or latest.get("name") or "-"
+    latest_dl = sum(a.get("download_count", 0) for a in latest.get("assets", []))
 
-# Issues/PRs last 14d via Search API (fast counts)
-def search_count(q):
-    r = S.get("https://api.github.com/search/issues", params={"q": q})
-    r.raise_for_status()
-    return r.json().get("total_count", 0)
+# Timestamp
+now = datetime.datetime.now(tz=tz.gettz("America/New_York")).strftime("%b %d, %Y %I:%M %p %Z")
 
-issues_opened_14d = search_count(f"repo:{owner}/{repo} is:issue created:>={SINCE}")
-issues_closed_14d = search_count(f"repo:{owner}/{repo} is:issue closed:>={SINCE}")
-
-prs_opened_14d  = search_count(f"repo:{owner}/{repo} is:pr created:>={SINCE}")
-prs_merged_14d  = search_count(f"repo:{owner}/{repo} is:pr is:merged merged:>={SINCE}")
-prs_closed_unmerged_14d = search_count(f"repo:{owner}/{repo} is:pr is:closed -is:merged closed:>={SINCE}")
-
-# Active contributors (unique commit authors in last 14d)
-authors = collections.Counter()
-for c in paged(f"https://api.github.com/repos/{owner}/{repo}/commits",
-               params={"since": SINCE, "until": UNTIL}):
-    a = c.get("author") or {}
-    login = a.get("login")
-    if login:
-        authors[login] += 1
-    else:
-        # fallback to commit author email if no linked GitHub user (bots/anon)
-        email = (c.get("commit", {}).get("author", {}) or {}).get("email")
-        if email:
-            authors[email] += 1
-active_contribs = len(authors)
-top5 = authors.most_common(5)
-
-# Time stamp
-now = datetime.datetime.now(tz=tz.gettz("America/New_York"))
-date_str = now.strftime("%b %d, %Y %I:%M %p %Z")
-
-# Build HTML
-rows_top5 = "".join(
-  f"<tr><td>{name}</td><td style='text-align:right'>{cnt}</td></tr>" for name, cnt in top5
-) or "<tr><td colspan='2' style='text-align:center'>—</td></tr>"
-
-html = f"""<!doctype html>
+html = f"""<!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><title>{REPO} – Biweekly Metrics</title>
-<style>
-body{{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.45}}
-table{{border-collapse:collapse;width:100%;max-width:700px}}
-td,th{{border:1px solid #ddd;padding:6px 10px}}
-th{{background:#f6f8fa;text-align:left}}
-small{{color:#666}}
-</style>
-</head>
-<body>
-<h2>{REPO} – Biweekly Metrics</h2>
-<p><strong>Generated:</strong> {date_str}</p>
-
-<h3>Overview</h3>
-<table>
-  <tr><th>Metric</th><th>Value</th></tr>
-  <tr><td>Stars (total)</td><td>{stars_total} &nbsp; <small>+{stars_recent} in last 14d</small></td></tr>
-  <tr><td>Forks (total)</td><td>{forks_total}</td></tr>
-  <tr><td>Issues (opened / closed in last 14d)</td><td>{issues_opened_14d} / {issues_closed_14d}</td></tr>
-  <tr><td>Pull requests (opened / merged / closed-unmerged in last 14d)</td><td>{prs_opened_14d} / {prs_merged_14d} / {prs_closed_unmerged_14d}</td></tr>
-  <tr><td>Active contributors (last 14d)</td><td>{active_contribs}</td></tr>
-  <tr><td>Traffic (last 14d)</td><td>{views_sum} views ({views_uniques} unique) · {clones_sum} clones ({clones_uniques} unique)</td></tr>
-  <tr><td>Downloads (latest release)</td><td>{latest_release_downloads} <small>({latest_release_tag})</small></td></tr>
-  <tr><td>Downloads (all releases cumulative)</td><td>{total_downloads}</td></tr>
+<head><meta charset='utf-8'><title>{REPO} Metrics</title></head>
+<body style="font-family:Arial, sans-serif;">
+<h2>{REPO} – Biweekly Metrics Report</h2>
+<p><strong>Generated:</strong> {now}</p>
+<table border="1" cellspacing="0" cellpadding="6">
+<tr><th align="left">Metric</th><th align="left">Value</th></tr>
+<tr><td>Stars</td><td>{stars}</td></tr>
+<tr><td>Forks</td><td>{forks}</td></tr>
+<tr><td>Issues opened / closed (14 d)</td><td>{issues_open} / {issues_closed}</td></tr>
+<tr><td>PRs opened / merged / closed (14 d)</td><td>{prs_open} / {prs_merged} / {prs_closed}</td></tr>
+<tr><td>Active contributors (14 d)</td><td>{active_contributors}</td></tr>
+<tr><td>Traffic (views / uniques)</td><td>{views_total} / {views_unique}</td></tr>
+<tr><td>Clones (total / uniques)</td><td>{clones_total} / {clones_unique}</td></tr>
+<tr><td>Downloads (latest release)</td><td>{latest_dl} ({latest_tag})</td></tr>
+<tr><td>Downloads (all releases)</td><td>{downloads_total}</td></tr>
 </table>
+</body></html>"""
 
-<h3>Top contributors (last 14 days)</h3>
-<table>
-  <tr><th>User / Email</th><th style="text-align:right">Commits</th></tr>
-  {rows_top5}
-</table>
-
-<p><small>
-• Traffic endpoints only cover the most recent 14 days.<br>
-• “Active contributors” = unique commit authors in last 14 days (GitHub user or author email).<br>
-• Release download counts are cumulative per asset.
-</small></p>
-</body></html>
-"""
 with open("metrics_report.html","w",encoding="utf-8") as f:
     f.write(html)
-print("Wrote metrics_report.html")
+print(" metrics_report.html created")
 PY
           python scripts/biweekly_metrics.py
 
@@ -217,10 +156,12 @@ PY
           password: ${{ secrets.SMTP_PASSWORD }}
           subject: "Biweekly Metrics – ${{ github.repository }}"
           from: ${{ secrets.FROM_EMAIL }}
-          to: ${{ secrets.TO_EMAILS }}   # comma-separated if multiple
+          to: ${{ secrets.TO_EMAILS }}
           content_type: text/plain
           body: |
             Hi! Your biweekly metrics report is attached.
+
             Repo: ${{ github.repository }}
-            Run: ${{ github.run_number }} • ${{ github.workflow }}
+            Workflow: ${{ github.workflow }}
+            Run: ${{ github.run_number }}
           attachments: metrics_report.html
