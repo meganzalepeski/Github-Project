@@ -2,7 +2,7 @@ import os, requests, datetime, collections
 from dateutil import tz
 
 REPO = os.environ["REPO"]
-TOKEN = os.environ["GITHUB_TOKEN"]
+TOKEN = os.environ["METRICS_TOKEN"]
 owner, repo = REPO.split("/")
 SINCE = (datetime.datetime.utcnow() - datetime.timedelta(days=14)).isoformat() + "Z"
 
