@@ -43,13 +43,19 @@ for c in commits:
         authors.add(a["login"])
 active_contributors = len(authors)
 
-# Traffic (last 14d)
-views = get(f"https://api.github.com/repos/{owner}/{repo}/traffic/views")
-clones = get(f"https://api.github.com/repos/{owner}/{repo}/traffic/clones")
-views_total = sum(v["count"] for v in views.get("views", []))
-views_unique = views.get("uniques", 0)
-clones_total = sum(v["count"] for v in clones.get("clones", []))
-clones_unique = clones.get("uniques", 0)
+views_total = views_unique = clones_total = clones_unique = 0
+try:
+    views = get(f"https://api.github.com/repos/{owner}/{repo}/traffic/views")
+    clones = get(f"https://api.github.com/repos/{owner}/{repo}/traffic/clones")
+    views_total = sum(v["count"] for v in views.get("views", []))
+    views_unique = views.get("uniques", 0)
+    clones_total = sum(v["count"] for v in clones.get("clones", []))
+    clones_unique = clones.get("uniques", 0)
+except requests.HTTPError as e:
+    if e.response is not None and e.response.status_code == 403:
+        print("Note: Traffic API not accessible with this token; continuing without traffic metrics.")
+    else:
+        raise
 
 # Downloads
 releases = get(f"https://api.github.com/repos/{owner}/{repo}/releases")
