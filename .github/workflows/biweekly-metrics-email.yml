@@ -26,7 +26,7 @@ jobs:
       - name: Skip unless this is an "every other Thursday" starting 2025-10-30
         id: gate
         run: |
-          python - <<'PY'
+          python <<'PY'
 import sys, datetime
 # Anchor: first run date (Thursday)
 anchor = datetime.date(2025, 10, 30)
