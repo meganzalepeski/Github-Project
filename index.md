@@ -4,7 +4,7 @@
 Welcome! This page gets you from zero → productive, and answers the most common questions.
 
 ## 🚀 Quick Start
-- Clone the repo: `git clone https://github.com/<your-username>/<your-repo>.git`
+- Clone the repo: `git clone https://ggithub.com/meganzalepeski/Github-Project.git`
 - Install prerequisites
 - Run setup commands
 - Verify everything works
