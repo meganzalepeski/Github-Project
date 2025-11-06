@@ -1,0 +1,24 @@
+name: Notify on download request
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  mail:
+    if: contains(github.event.issue.labels.*.name, 'download-request')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "New download request in ${{ github.repository }}"
+          to: ${{ secrets.TO_EMAILS }}
+          from: Download Bot <${{ secrets.FROM_EMAIL }}>
+          content_type: text/plain
+          body: |
+            Issue:  #${{ github.event.issue.number }} - ${{ github.event.issue.title }}
+            By:     ${{ github.event.issue.user.login }}
+            Link:   ${{ github.event.issue.html_url }}
