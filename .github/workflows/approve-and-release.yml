@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   handle:
-    if: github.event.issue.pull_request == null && contains(github.event.issue.labels.*.name, 'download-request')
+    if: github.event.issue.pull_request == null
     runs-on: ubuntu-latest
     steps:
       - name: Parse admin command
@@ -30,7 +30,7 @@ jobs:
       - name: Build ZIP from bundle-src/
         if: steps.parse.outputs.action == 'approve'
         run: |
-          test -d bundle-src || (echo "bundle-src/ not found. Add distributable files there." && exit 1)
+          test -d bundle-src || (echo "bundle-src/ not found." && exit 1)
           zip -r bundle.zip bundle-src
 
       - name: Publish GitHub Release
@@ -46,12 +46,14 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const a = core.getOutput('action');
-            const u = core.getOutput('user') || 'user';
+            const action = "${{ steps.parse.outputs.action }}";
+            const user   = "${{ steps.parse.outputs.user }}";
             let msg = 'No action taken.';
-            if (a === 'approve') msg = `Approved. Release published for @${u}. See the Releases tab.`;
-            if (a === 'deny')    msg = `Denied for @${u}.`;
+            if (action === 'approve') msg = `Approved. Release published for @${user}. See the Releases tab.`;
+            if (action === 'deny')    msg = `Denied for @${user}.`;
             await github.rest.issues.createComment({
-              owner: context.repo.owner, repo: context.repo.repo,
-              issue_number: context.issue.number, body: msg
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              issue_number: context.issue.number,
+              body: msg
             });
