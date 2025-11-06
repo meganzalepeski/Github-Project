@@ -1,0 +1,30 @@
+name: Notify on repo fork
+on:
+  fork:
+
+permissions:
+  contents: read
+
+jobs:
+  mail_admin_on_fork:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "Repo forked: ${{ github.repository }}"
+          from: Repo Bot <${{ secrets.FROM_EMAIL }}>
+          to: ${{ secrets.TO_EMAILS }}
+          content_type: text/plain
+          body: |
+            Repository:  ${{ github.repository }}
+            Forked by:   ${{ github.actor }}
+            Fork name:   ${{ github.event.forkee.full_name }}
+            Fork URL:    ${{ github.event.forkee.html_url }}
+            Default branch: ${{ github.event.forkee.default_branch }}
+            Private?:    ${{ github.event.forkee.private }}
+            Time (UTC):  ${{ github.event.repository.updated_at }}
