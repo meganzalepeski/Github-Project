@@ -1,13 +1,22 @@
 name: Download Request
 description: Request an approved download bundle
 title: "Download request: <your GitHub username>"
-labels: ["download-request"]
+labels:
+  - download-request
 body:
   - type: input
     id: ghuser
-    attributes: { label: Your GitHub username, placeholder: octocat }
-    validations: { required: true }
+    attributes:
+      label: Your GitHub username
+      placeholder: octocat
+    validations:
+      required: true
+
   - type: textarea
     id: reason
-    attributes: { label: Reason for request, placeholder: Why do you need the code? }
-    validations: { required: true }
+    attributes:
+      label: Reason for request
+      description: Briefly explain why you need the code.
+      placeholder: Why do you need the code?
+    validations:
+      required: true
