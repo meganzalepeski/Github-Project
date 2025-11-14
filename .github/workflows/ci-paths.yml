@@ -13,7 +13,7 @@ jobs:
       py_changed:   ${{ steps.filter.outputs.py }}
       docs_changed: ${{ steps.filter.outputs.docs }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -38,7 +38,7 @@ jobs:
     if: github.event_name == 'push' || needs.detect.outputs.node_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -55,7 +55,7 @@ jobs:
     if: github.event_name == 'push' || needs.detect.outputs.py_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -73,6 +73,6 @@ jobs:
     if: github.event_name == 'push' || needs.detect.outputs.docs_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Lint Markdown
         uses: avto-dev/markdown-lint@v1

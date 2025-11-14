@@ -24,7 +24,7 @@ jobs:
             else if (deny){ core.setOutput('action','deny'); core.setOutput('user',deny[1]); }
             else { core.setOutput('action','none'); }
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         if: steps.parse.outputs.action == 'approve'
 
       - name: Build ZIP from bundle-src/
