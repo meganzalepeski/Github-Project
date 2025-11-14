@@ -16,7 +16,4 @@ Welcome! This page gets you from zero → productive, and answers the most commo
 **Where do I ask questions?**  
 → Use [Discussions](https://github.com/meganzalepeski/Github-Project/discussions)
 
-**How do I contribute?**  
-→ See [Contributing Guide](contributing.md)
-
 For a longer FAQ, see [Full FAQ](faq.md).
