@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Parse admin command
         id: parse
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const body = context.payload.comment.body.trim();
@@ -43,7 +43,7 @@ jobs:
           files: bundle.zip
 
       - name: Comment result
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const action = "${{ steps.parse.outputs.action }}";
