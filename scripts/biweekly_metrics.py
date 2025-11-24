@@ -95,4 +95,4 @@ html = f"""<!DOCTYPE html>
 
 with open("metrics_report.html","w",encoding="utf-8") as f:
     f.write(html)
-print("✅ metrics_report.html created")
+print(" metrics_report.html created")
