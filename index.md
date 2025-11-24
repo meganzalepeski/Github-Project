@@ -3,13 +3,13 @@
 
 Welcome! This page gets you from zero → productive, and answers the most common questions.
 
-## 🚀 Quick Start
+## Quick Start
 - Clone the repo: `git clone https://github.com/<org-name>/<repo-name>.git`
 - Install prerequisites
 - Run setup commands
 - Verify everything works
 
-## ❓ FAQ
+## FAQ
 **How do I report a bug?**  
 → Open a new [Issue](https://github.com/meganzalepeski/Github-Project/issues)
 
